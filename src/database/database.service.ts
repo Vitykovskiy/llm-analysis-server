@@ -89,7 +89,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     await this.ensureTaskStatusConstraint();
     await this.ensureTaskCodeColumn();
     await this.ensureArtifactSchema();
-    this.logger.log(`SQLite ready at ${this.dbFile}`);
+    this.logger.log(`SQLite готов: ${this.dbFile}`);
   }
 
   private async ensureTaskCodeColumn(): Promise<void> {
@@ -137,7 +137,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.logger.warn(
-      'Migrating tasks table to new status set (Открыта, Требует уточнения, Готова к продолжению, Декомпозирована, Выполнена)',
+      'Миграция таблицы tasks на новый набор статусов (Открыта, Требует уточнения, Готова к продолжению, Декомпозирована, Выполнена)',
     );
 
     await this.run('PRAGMA foreign_keys=off');
@@ -273,7 +273,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     );
 
     if (!row) {
-      throw new Error('Failed to read saved message');
+      throw new Error('Не удалось прочитать сохраненное сообщение');
     }
 
     return {
@@ -352,7 +352,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     }>('SELECT * FROM tasks WHERE id = last_insert_rowid()');
 
     if (!row) {
-      throw new Error('Failed to read saved task');
+      throw new Error('Не удалось прочитать сохраненную задачу');
     }
 
     return {
@@ -514,7 +514,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (!sets.length) {
-      throw new Error('No fields to update');
+      throw new Error('Нет полей для обновления');
     }
 
     params.push(id);
@@ -531,7 +531,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     }>('SELECT * FROM tasks WHERE id = ?', [id]);
 
     if (!row) {
-      throw new Error('Task not found');
+      throw new Error('Задача не найдена');
     }
 
     return {
@@ -597,7 +597,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     }>('SELECT * FROM tasks WHERE id = ?', [id]);
 
     if (!task) {
-      throw new Error('Task not found');
+      throw new Error('Задача не найдена');
     }
 
     const parents = await this.all<{
@@ -668,11 +668,11 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     const title = input.title?.trim();
 
     if (!trimmedContent) {
-      throw new Error('Artifact content is required');
+      throw new Error('Содержимое артефакта обязательно');
     }
 
     if (!title) {
-      throw new Error('Artifact title is required');
+      throw new Error('Название артефакта обязательно');
     }
 
     const normalizedCategory = this.normalizeCategory(input.category);
@@ -710,7 +710,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
     const snapshot = await this.getLatestArtifactSnapshot(artifactId);
     if (!snapshot) {
-      throw new Error('Failed to read saved artifact');
+      throw new Error('Не удалось прочитать сохраненный артефакт');
     }
 
     return snapshot;
@@ -726,7 +726,9 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     const hasLocation = Boolean(input.location?.trim());
 
     if (!hasContent && !hasLocation) {
-      throw new Error('Export must have content or a storage location');
+      throw new Error(
+        'Экспорт должен содержать данные или ссылку на хранилище',
+      );
     }
 
     const version = await this.get<{ id: number }>(
@@ -735,7 +737,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     );
 
     if (!version) {
-      throw new Error(`Artifact version ${input.versionId} not found`);
+      throw new Error(`Версия артефакта ${input.versionId} не найдена`);
     }
 
     await this.run(
@@ -754,7 +756,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     );
 
     if (!row) {
-      throw new Error('Failed to create artifact export');
+      throw new Error('Не удалось создать экспорт артефакта');
     }
 
     return row;
@@ -827,7 +829,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
     const normalized = map[category];
     if (!normalized) {
-      throw new Error(`Unsupported artifact category: ${category}`);
+      throw new Error(`Неподдерживаемая категория артефакта: ${category}`);
     }
     return normalized;
   }
@@ -842,7 +844,9 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       non_functional_requirement: 'NON_FUNCTIONAL_REQUIREMENTS',
       acceptance_criteria: 'ACCEPTANCE_CRITERIA',
     };
-    return (map[category] as ArtifactCategory) ?? (category as ArtifactCategory);
+    return (
+      (map[category] as ArtifactCategory) ?? (category as ArtifactCategory)
+    );
   }
 
   private async upsertArtifactRecord(input: {
@@ -858,7 +862,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       );
 
       if (!existing) {
-        throw new Error(`Artifact ${input.id} not found`);
+        throw new Error(`Артефакт ${input.id} не найден`);
       }
 
       await this.run(
@@ -878,7 +882,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     );
 
     if (!row) {
-      throw new Error('Failed to create artifact record');
+      throw new Error('Не удалось создать запись артефакта');
     }
 
     return row.id;
@@ -910,9 +914,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         (taskId) => !existing.find((item) => item.id === taskId),
       );
       if (missing.length) {
-        throw new Error(
-          `Tasks not found for ids: ${missing.join(', ')}`,
-        );
+        throw new Error(`Задачи с такими ID не найдены: ${missing.join(', ')}`);
       }
 
       for (const taskId of uniqueTasks) {
@@ -941,7 +943,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       if (!existingSources?.count) {
         await this.run(
           `INSERT INTO artifact_sources (artifact_id, source_type, source_id, description)
-           VALUES (?, 'manual', NULL, 'Stored without explicit source reference')`,
+           VALUES (?, 'manual', NULL, 'Сохранено без явной ссылки на источник')`,
           [artifactId],
         );
       }
@@ -1008,7 +1010,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     );
 
     if (!existing) {
-      throw new Error('Task not found');
+      throw new Error('Задача не найдена');
     }
 
     await this.run(
@@ -1021,7 +1023,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   private run(sql: string, params: unknown[] = []): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.db) {
-        reject(new Error('Database not initialized'));
+        reject(new Error('База данных не инициализирована'));
         return;
       }
 
@@ -1038,7 +1040,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   private all<T>(sql: string, params: unknown[] = []): Promise<T[]> {
     return new Promise((resolve, reject) => {
       if (!this.db) {
-        reject(new Error('Database not initialized'));
+        reject(new Error('База данных не инициализирована'));
         return;
       }
 
@@ -1055,7 +1057,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   private get<T>(sql: string, params: unknown[] = []): Promise<T | undefined> {
     return new Promise((resolve, reject) => {
       if (!this.db) {
-        reject(new Error('Database not initialized'));
+        reject(new Error('База данных не инициализирована'));
         return;
       }
 

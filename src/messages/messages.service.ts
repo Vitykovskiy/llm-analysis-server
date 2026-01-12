@@ -31,14 +31,14 @@ export class MessagesService {
     const trimmed = userText.trim();
 
     if (!trimmed) {
-      throw new BadRequestException('Message text is required');
+      throw new BadRequestException('Текст сообщения обязателен');
     }
 
     const botReply =
       await this.langchainService.generateTaskAwareReply(userText);
     const saved = await this.databaseService.saveMessage(userText, botReply);
     await this.indexInVectorStore(userText, botReply, saved);
-    this.logger.debug(`Saved message #${saved.id}`);
+    this.logger.debug(`Сообщение сохранено #${saved.id}`);
     return saved;
   }
 
@@ -48,13 +48,13 @@ export class MessagesService {
 
   async clearMessages(): Promise<void> {
     await this.databaseService.clearMessages();
-    this.logger.debug('Cleared chat history');
+    this.logger.debug('История чата очищена');
   }
 
   async searchSimilar(query: string, limit = 3): Promise<SimilarEntry[]> {
     const trimmed = query?.trim();
     if (!trimmed) {
-      throw new BadRequestException('Query is required');
+      throw new BadRequestException('Параметр запроса обязателен');
     }
 
     const safeLimit =
@@ -76,7 +76,9 @@ export class MessagesService {
       });
     } catch (err) {
       this.logger.warn(
-        `Vector store indexing failed: ${(err as Error).message}`,
+        `Не удалось проиндексировать сообщение в векторном хранилище: ${
+          (err as Error).message
+        }`,
       );
     }
   }

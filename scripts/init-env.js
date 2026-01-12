@@ -30,18 +30,24 @@ const ask = (question, fallback) =>
 async function main() {
   if (fs.existsSync(envPath)) {
     const overwrite = (
-      await ask(`.env already exists at ${envPath}. Overwrite? y/N`, "n")
+      await ask(
+        `.env уже существует по пути ${envPath}. Перезаписать? y/N`,
+        "n",
+      )
     ).toLowerCase();
     if (overwrite !== "y") {
-      console.log("Keeping existing .env, no changes made.");
+      console.log("Сохраняю текущий .env без изменений.");
       return;
     }
   }
 
-  const port = await ask("Port", defaults.port);
-  const llmToken = await ask("LLM API token", defaults.llmToken);
-  const llmModel = await ask("LLM model", defaults.llmModel);
-  const chromaUrl = await ask("Chroma URL (optional)", defaults.chromaUrl);
+  const port = await ask("Порт", defaults.port);
+  const llmToken = await ask("Токен LLM API", defaults.llmToken);
+  const llmModel = await ask("Модель LLM", defaults.llmModel);
+  const chromaUrl = await ask(
+    "URL Chroma (необязательно)",
+    defaults.chromaUrl,
+  );
 
   const lines = [
     `PORT=${port}`,
@@ -56,7 +62,7 @@ async function main() {
   const content = lines.join("\n");
 
   fs.writeFileSync(envPath, `${content}\n`);
-  console.log(`.env written to ${envPath}`);
+  console.log(`.env записан в ${envPath}`);
 }
 
 main()

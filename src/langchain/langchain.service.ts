@@ -33,7 +33,7 @@ export class LangchainService {
   ) {
     const apiKey = process.env.LLM_API_TOKEN;
     if (!apiKey) {
-      throw new Error('LLM_API_TOKEN is not set');
+      throw new Error('LLM_API_TOKEN не задан');
     }
 
     this.model = new ChatOpenAI({
@@ -43,7 +43,7 @@ export class LangchainService {
     });
 
     this.echoChain = RunnableSequence.from([
-      PromptTemplate.fromTemplate('Echo from LangChain: {input}'),
+      PromptTemplate.fromTemplate('Эхо от LangChain: {input}'),
       this.model,
       new StringOutputParser(),
     ]);
@@ -52,7 +52,7 @@ export class LangchainService {
   }
 
   async generateEcho(input: string): Promise<string> {
-    this.logger.debug('Sending prompt to OpenAI');
+    this.logger.debug('Отправка запроса в OpenAI');
     return this.echoChain.invoke({ input });
   }
 
@@ -122,7 +122,7 @@ export class LangchainService {
         if (!tool) {
           messages.push(
             new ToolMessage({
-              content: 'Инструмент ${call.name} недоступен',
+              content: `Инструмент ${call.name} недоступен`,
               tool_call_id: toolCallId,
             }),
           );
@@ -140,7 +140,7 @@ export class LangchainService {
         } catch (err) {
           messages.push(
             new ToolMessage({
-              content: 'Ошибка инструмента: ${(err as Error).message}',
+              content: `Ошибка инструмента: ${(err as Error).message}`,
               tool_call_id: toolCallId,
             }),
           );
@@ -400,7 +400,9 @@ export class LangchainService {
       return history;
     } catch (err) {
       this.logger.warn(
-        `Could not load recent messages for context: ${(err as Error).message}`,
+        `Не удалось загрузить недавние сообщения для контекста: ${
+          (err as Error).message
+        }`,
       );
       return [];
     }

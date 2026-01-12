@@ -110,7 +110,7 @@ export class TasksService {
       payload.parentIds === undefined &&
       payload.childIds === undefined
     ) {
-      throw new BadRequestException('Nothing to update');
+      throw new BadRequestException('Нет данных для обновления');
     }
 
     const parentIds =
@@ -129,8 +129,8 @@ export class TasksService {
       await this.databaseService.setTaskRelations(id, parentIds, childIds);
       return await this.databaseService.getTaskWithRelations(id);
     } catch (err) {
-      if ((err as Error).message === 'Task not found') {
-        throw new NotFoundException(`Task ${id} not found`);
+      if ((err as Error).message === 'Задача не найдена') {
+        throw new NotFoundException(`Задача ${id} не найдена`);
       }
       throw err;
     }
@@ -140,8 +140,8 @@ export class TasksService {
     try {
       await this.databaseService.deleteTask(id);
     } catch (err) {
-      if ((err as Error).message === 'Task not found') {
-        throw new NotFoundException(`Task ${id} not found`);
+      if ((err as Error).message === 'Задача не найдена') {
+        throw new NotFoundException(`Задача ${id} не найдена`);
       }
       throw err;
     }
@@ -149,12 +149,12 @@ export class TasksService {
 
   private parseType(type?: string): TaskType {
     if (!type) {
-      throw new BadRequestException('Task type is required');
+      throw new BadRequestException('Тип задачи обязателен');
     }
 
     if (!TASK_TYPES.includes(type as TaskType)) {
       throw new BadRequestException(
-        `Unknown task type: ${type}. Allowed: ${TASK_TYPES.join(', ')}`,
+        `Неизвестный тип задачи: ${type}. Допустимо: ${TASK_TYPES.join(', ')}`,
       );
     }
 
@@ -166,12 +166,12 @@ export class TasksService {
       if (fallback) {
         return fallback;
       }
-      throw new BadRequestException('Task status is required');
+      throw new BadRequestException('Статус задачи обязателен');
     }
 
     if (!TASK_STATUSES.includes(status as TaskStatus)) {
       throw new BadRequestException(
-        `Unknown task status: ${status}. Allowed: ${TASK_STATUSES.join(', ')}`,
+        `Неизвестный статус задачи: ${status}. Допустимо: ${TASK_STATUSES.join(', ')}`,
       );
     }
 
@@ -181,7 +181,7 @@ export class TasksService {
   private parseDescription(description?: string): string {
     const value = description?.trim();
     if (!value) {
-      throw new BadRequestException('Task description is required');
+      throw new BadRequestException('Описание задачи обязательно');
     }
     return value;
   }
@@ -189,7 +189,7 @@ export class TasksService {
   private parseTitle(title?: string): string {
     const value = title?.trim();
     if (!value) {
-      throw new BadRequestException('Task title is required');
+      throw new BadRequestException('Название задачи обязательно');
     }
     return value;
   }
@@ -197,7 +197,7 @@ export class TasksService {
   private parseIdArray(value: unknown): number[] {
     if (value === undefined || value === null) return [];
     if (!Array.isArray(value)) {
-      throw new BadRequestException('Ids must be an array');
+      throw new BadRequestException('ID должны быть массивом');
     }
     const ids = value
       .map((item) => Number(item))
@@ -213,7 +213,7 @@ export class TasksService {
     );
     if (missing.length) {
       throw new BadRequestException(
-        `Tasks not found for ids: ${missing.join(', ')}`,
+        `Задачи с такими ID не найдены: ${missing.join(', ')}`,
       );
     }
   }

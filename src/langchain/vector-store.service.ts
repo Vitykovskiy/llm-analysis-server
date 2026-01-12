@@ -21,13 +21,13 @@ export class VectorStoreService {
   constructor() {
     const apiKey = process.env.LLM_API_TOKEN;
     if (!apiKey) {
-      this.logger.warn('LLM_API_TOKEN is missing; Chroma integration disabled');
+      this.logger.warn('LLM_API_TOKEN не задан; интеграция с Chroma отключена');
       this.embeddings = null;
       return;
     }
 
     if (!this.chromaUrl) {
-      this.logger.warn('CHROMA_URL is not set; Chroma integration disabled');
+      this.logger.warn('CHROMA_URL не задан; интеграция с Chroma отключена');
       this.embeddings = null;
       return;
     }
@@ -69,7 +69,9 @@ export class VectorStoreService {
       await store.addDocuments(documents);
     } catch (err) {
       this.logger.warn(
-        `Could not index conversation in Chroma: ${(err as Error).message}`,
+        `Не удалось проиндексировать диалог в Chroma: ${
+          (err as Error).message
+        }`,
       );
       this.resetStore();
     }
@@ -80,11 +82,11 @@ export class VectorStoreService {
     metadata?: Record<string, unknown>;
     id?: string;
   }): Promise<{ id: string }> {
-    if (!this.isEnabled()) throw new Error('Chroma is not configured');
+    if (!this.isEnabled()) throw new Error('Chroma не настроена');
 
     const trimmed = input.content?.trim();
     if (!trimmed) {
-      throw new Error('Content is required');
+      throw new Error('Требуется содержимое');
     }
 
     const id = input.id?.toString() ?? randomUUID();
@@ -103,17 +105,17 @@ export class VectorStoreService {
     content?: string;
     metadata?: Record<string, unknown>;
   }): Promise<{ id: string }> {
-    if (!this.isEnabled()) throw new Error('Chroma is not configured');
+    if (!this.isEnabled()) throw new Error('Chroma не настроена');
     const id = input.id?.toString();
-    if (!id) throw new Error('Document id is required');
+    if (!id) throw new Error('Требуется идентификатор документа');
     if (!input.content && !input.metadata) {
-      throw new Error('Provide content or metadata to update');
+      throw new Error('Укажите содержимое или метаданные для обновления');
     }
 
     const store = await this.getStore();
     const collection = (store as any).collection;
     if (!collection?.get) {
-      throw new Error('Chroma collection handle is unavailable');
+      throw new Error('Не удалось получить доступ к коллекции Chroma');
     }
 
     const existing = await collection.get({
@@ -122,7 +124,7 @@ export class VectorStoreService {
     });
 
     if (!existing?.ids?.length) {
-      throw new Error(`Document ${id} not found`);
+      throw new Error(`Документ ${id} не найден`);
     }
 
     const currentContent = existing.documents?.[0] as string | undefined;
@@ -131,7 +133,7 @@ export class VectorStoreService {
 
     const newContent = input.content?.trim() || currentContent || '';
     if (!newContent) {
-      throw new Error('Updated content cannot be empty');
+      throw new Error('Обновленное содержимое не может быть пустым');
     }
 
     const newMetadata = input.metadata
@@ -139,7 +141,7 @@ export class VectorStoreService {
       : currentMetadata;
 
     if (!collection.update) {
-      // Fallback: delete then add
+      // Резервный вариант: удалить и добавить заново
       await collection.delete({ ids: [id] });
       await collection.add({
         ids: [id],
@@ -159,14 +161,14 @@ export class VectorStoreService {
   }
 
   async deleteDocument(id: string): Promise<{ deleted: boolean }> {
-    if (!this.isEnabled()) throw new Error('Chroma is not configured');
+    if (!this.isEnabled()) throw new Error('Chroma не настроена');
     const safeId = id?.toString();
-    if (!safeId) throw new Error('Document id is required');
+    if (!safeId) throw new Error('Требуется идентификатор документа');
 
     const store = await this.getStore();
     const collection = (store as any).collection;
     if (!collection?.delete) {
-      throw new Error('Chroma collection handle is unavailable');
+      throw new Error('Не удалось получить доступ к коллекции Chroma');
     }
 
     await collection.delete({ ids: [safeId] });
@@ -192,7 +194,9 @@ export class VectorStoreService {
       }));
     } catch (err) {
       this.logger.warn(
-        `Chroma similarity search failed: ${(err as Error).message}`,
+        `Поиск похожих документов в Chroma завершился ошибкой: ${
+          (err as Error).message
+        }`,
       );
       this.resetStore();
       return [];
@@ -200,14 +204,14 @@ export class VectorStoreService {
   }
 
   async getDocument(id: string): Promise<SearchResult | null> {
-    if (!this.isEnabled()) throw new Error('Chroma is not configured');
+    if (!this.isEnabled()) throw new Error('Chroma не настроена');
     const safeId = id?.toString();
-    if (!safeId) throw new Error('Document id is required');
+    if (!safeId) throw new Error('Требуется идентификатор документа');
 
     const store = await this.getStore();
     const collection = (store as any).collection;
     if (!collection?.get) {
-      throw new Error('Chroma collection handle is unavailable');
+      throw new Error('Не удалось получить доступ к коллекции Chroma');
     }
 
     const found = await collection.get({
@@ -231,7 +235,7 @@ export class VectorStoreService {
 
   private async getStore(): Promise<Chroma> {
     if (!this.isEnabled() || !this.embeddings || !this.chromaUrl) {
-      throw new Error('Chroma is not configured');
+      throw new Error('Chroma не настроена');
     }
 
     if (!this.storePromise) {
@@ -240,7 +244,7 @@ export class VectorStoreService {
         url: this.chromaUrl,
       }).catch(async (err) => {
         this.logger.warn(
-          `Chroma collection lookup failed (${(err as Error).message}), attempting to create a new one`,
+          `Не удалось найти коллекцию Chroma (${(err as Error).message}), пробуем создать новую`,
         );
         return Chroma.fromTexts([], [], this.embeddings!, {
           collectionName: this.collectionName,
