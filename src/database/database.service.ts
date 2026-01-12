@@ -844,9 +844,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       non_functional_requirement: 'NON_FUNCTIONAL_REQUIREMENTS',
       acceptance_criteria: 'ACCEPTANCE_CRITERIA',
     };
-    return (
-      (map[category] as ArtifactCategory) ?? (category as ArtifactCategory)
-    );
+    return map[category] ?? (category as ArtifactCategory);
   }
 
   private async upsertArtifactRecord(input: {
@@ -899,14 +897,14 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
           (taskId) => Number.isFinite(taskId) && Number(taskId) > 0,
         ),
       ),
-    ) as number[];
+    );
     const uniqueMessages = Array.from(
       new Set(
         (messageIds ?? []).filter(
           (messageId) => Number.isFinite(messageId) && Number(messageId) > 0,
         ),
       ),
-    ) as number[];
+    );
 
     if (uniqueTasks.length) {
       const existing = await this.getTasksByIds(uniqueTasks);
