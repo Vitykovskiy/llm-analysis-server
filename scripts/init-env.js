@@ -10,7 +10,7 @@ const defaults = {
   port: "3000",
   llmToken: "your-llm-api-token",
   llmModel: "gpt-4.1",
-  chromaUrl: "",
+  chromaUrl: "http://localhost:8000",
 };
 
 const rl = readline.createInterface({
