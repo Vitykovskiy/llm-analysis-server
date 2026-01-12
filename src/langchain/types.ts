@@ -1,4 +1,9 @@
-import type { Task, TasksService } from '../tasks/tasks.service';
+import type {
+  Task,
+  TaskStatus,
+  TaskType,
+  TasksService,
+} from '../tasks/tasks.service';
 import type { VectorStoreService } from './vector-store.service';
 
 export type TaskToolsDeps = {
@@ -7,14 +12,9 @@ export type TaskToolsDeps = {
   formatTask: (task: Task) => string;
 };
 
-export type StatusValue =
-  | 'Открыта'
-  | 'Требует уточнения'
-  | 'Готова к продолжению'
-  | 'Декомпозирована'
-  | 'Выполнена';
+export type StatusValue = TaskStatus;
 
-export type TaskTypeValue = 'epic' | 'task' | 'subtask';
+export type TaskTypeValue = TaskType;
 
 export type ListTasksInput = {
   status?: StatusValue;

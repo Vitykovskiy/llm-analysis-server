@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import {
   ArtifactCategory,
+  ArtifactFormat,
   ArtifactKind,
   ArtifactSnapshot,
   DatabaseService,
 } from '../database/database.service';
 
-export type ResultFormat = 'markdown' | 'plantuml';
+export enum ResultFormat {
+  Markdown = 'markdown',
+  Plantuml = 'plantuml',
+}
 
 export interface ResultEntry {
   id: number;
@@ -29,7 +33,10 @@ export class ResultsService {
     return latest.map((item: ArtifactSnapshot) => ({
       id: item.artifactId,
       title: item.title,
-      format: item.format === 'plantuml' ? 'plantuml' : 'markdown',
+      format:
+        item.format === ArtifactFormat.Plantuml
+          ? ResultFormat.Plantuml
+          : ResultFormat.Markdown,
       content: item.content,
       category: item.category,
       kind: item.kind,

@@ -5,13 +5,18 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 
-export type TaskType = 'epic' | 'task' | 'subtask';
-export type TaskStatus =
-  | 'Открыта'
-  | 'Требует уточнения'
-  | 'Готова к продолжению'
-  | 'Декомпозирована'
-  | 'Выполнена';
+export enum TaskType {
+  Epic = 'epic',
+  Task = 'task',
+  Subtask = 'subtask',
+}
+export enum TaskStatus {
+  Open = 'open',
+  NeedsClarification = 'needs_clarification',
+  ReadyForFollowUp = 'ready_for_follow_up',
+  Decomposed = 'decomposed',
+  Done = 'done',
+}
 
 export interface Task {
   id: number;
@@ -25,14 +30,8 @@ export interface Task {
   children: { id: number; code: string; title: string }[];
 }
 
-const TASK_TYPES: TaskType[] = ['epic', 'task', 'subtask'];
-const TASK_STATUSES: TaskStatus[] = [
-  'Открыта',
-  'Требует уточнения',
-  'Готова к продолжению',
-  'Декомпозирована',
-  'Выполнена',
-];
+const TASK_TYPES: TaskType[] = Object.values(TaskType);
+const TASK_STATUSES: TaskStatus[] = Object.values(TaskStatus);
 
 @Injectable()
 export class TasksService {
@@ -53,7 +52,7 @@ export class TasksService {
     const type = this.parseType(payload.type);
     const title = this.parseTitle(payload.title);
     const description = this.parseDescription(payload.description);
-    const status = this.parseStatus(payload.status, 'Открыта');
+    const status = this.parseStatus(payload.status, TaskStatus.Open);
     const parentIds = this.parseIdArray(payload.parentIds);
     const childIds = this.parseIdArray(payload.childIds);
     await this.ensureIdsExist([...parentIds, ...childIds]);

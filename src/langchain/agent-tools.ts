@@ -12,6 +12,7 @@ import {
   UpdateTaskInput,
   UpdateVectorInput,
 } from './types';
+import { TaskStatus, TaskType } from '../tasks/tasks.service';
 
 type ToolFactoryInput<TInput> = {
   name: string;
@@ -29,14 +30,9 @@ const createTool = <TInput>(
   return new Ctor(fields);
 };
 
-const statusEnum = z.enum([
-  'Открыта',
-  'Требует уточнения',
-  'Готова к продолжению',
-  'Декомпозирована',
-  'Выполнена',
-]);
-const typeEnum = z.enum(['epic', 'task', 'subtask']);
+const statusValues = Object.values(TaskStatus) as [TaskStatus, ...TaskStatus[]];
+const statusEnum = z.enum(statusValues);
+const typeEnum = z.enum(Object.values(TaskType) as [TaskType, ...TaskType[]]);
 const idArray = z
   .array(z.number().int().positive())
   .describe('Список идентификаторов задач');

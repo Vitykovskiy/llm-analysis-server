@@ -7,26 +7,49 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { Database, verbose } from 'sqlite3';
+import { TaskStatus, TaskType } from '../tasks/tasks.service';
 
 const sqlite3 = verbose();
 
-export type ArtifactKind = 'text' | 'diagram';
-export type ArtifactCategory =
-  | 'use_case_diagram'
-  | 'er_diagram'
-  | 'entity_diagram'
-  | 'user_scenario'
-  | 'functional_requirement'
-  | 'non_functional_requirement'
-  | 'acceptance_criteria'
-  | 'USE_CASE_DIAGRAM'
-  | 'ENTITY_DIAGRAM'
-  | 'USER_SCENARIO'
-  | 'FUNCTIONAL_REQUIREMENTS'
-  | 'NON_FUNCTIONAL_REQUIREMENTS'
-  | 'ACCEPTANCE_CRITERIA';
-export type ArtifactFormat = 'markdown' | 'plantuml' | 'text';
-export type ArtifactSourceType = 'task' | 'message' | 'manual';
+export enum ArtifactKind {
+  Text = 'text',
+  Diagram = 'diagram',
+}
+
+export enum ArtifactCategory {
+  UseCaseDiagram = 'use_case_diagram',
+  ErDiagram = 'er_diagram',
+  EntityDiagram = 'entity_diagram',
+  UserScenario = 'user_scenario',
+  FunctionalRequirement = 'functional_requirement',
+  NonFunctionalRequirement = 'non_functional_requirement',
+  AcceptanceCriteria = 'acceptance_criteria',
+  UseCaseDiagramUpper = 'USE_CASE_DIAGRAM',
+  EntityDiagramUpper = 'ENTITY_DIAGRAM',
+  UserScenarioUpper = 'USER_SCENARIO',
+  FunctionalRequirementsUpper = 'FUNCTIONAL_REQUIREMENTS',
+  NonFunctionalRequirementsUpper = 'NON_FUNCTIONAL_REQUIREMENTS',
+  AcceptanceCriteriaUpper = 'ACCEPTANCE_CRITERIA',
+}
+
+export enum ArtifactFormat {
+  Markdown = 'markdown',
+  Plantuml = 'plantuml',
+  Text = 'text',
+}
+
+export enum ArtifactSourceType {
+  Task = 'task',
+  Message = 'message',
+  Manual = 'manual',
+}
+
+export enum ArtifactExportFormat {
+  Markdown = 'markdown',
+  Docx = 'docx',
+  Png = 'png',
+  Plantuml = 'plantuml',
+}
 
 export interface ArtifactSnapshot {
   artifactId: number;
@@ -40,12 +63,48 @@ export interface ArtifactSnapshot {
   createdAt: string;
 }
 
-type DbTaskStatus =
-  | 'Открыта'
-  | 'Требует уточнения'
-  | 'Готова к продолжению'
-  | 'Декомпозирована'
-  | 'Выполнена';
+const TASK_STATUS_VALUES = Object.values(TaskStatus);
+const TASK_STATUS_CHECK = `status IN ('${TASK_STATUS_VALUES.join("','")}')`;
+
+const ARTIFACT_KIND_VALUES = [ArtifactKind.Text, ArtifactKind.Diagram];
+const ARTIFACT_CATEGORY_DB_VALUES = [
+  ArtifactCategory.UseCaseDiagram,
+  ArtifactCategory.ErDiagram,
+  ArtifactCategory.EntityDiagram,
+  ArtifactCategory.UserScenario,
+  ArtifactCategory.FunctionalRequirement,
+  ArtifactCategory.NonFunctionalRequirement,
+  ArtifactCategory.AcceptanceCriteria,
+];
+const ARTIFACT_FORMAT_VALUES = [
+  ArtifactFormat.Markdown,
+  ArtifactFormat.Plantuml,
+  ArtifactFormat.Text,
+];
+const ARTIFACT_SOURCE_VALUES = [
+  ArtifactSourceType.Task,
+  ArtifactSourceType.Message,
+  ArtifactSourceType.Manual,
+];
+const ARTIFACT_EXPORT_FORMAT_VALUES = [
+  ArtifactExportFormat.Markdown,
+  ArtifactExportFormat.Docx,
+  ArtifactExportFormat.Png,
+  ArtifactExportFormat.Plantuml,
+];
+const ARTIFACT_KIND_CHECK = `kind IN ('${ARTIFACT_KIND_VALUES.join("','")}')`;
+const ARTIFACT_CATEGORY_CHECK = `category IN ('${ARTIFACT_CATEGORY_DB_VALUES.join(
+  "','",
+)}')`;
+const ARTIFACT_FORMAT_CHECK = `format IN ('${ARTIFACT_FORMAT_VALUES.join(
+  "','",
+)}')`;
+const ARTIFACT_SOURCE_CHECK = `source_type IN ('${ARTIFACT_SOURCE_VALUES.join(
+  "','",
+)}')`;
+const ARTIFACT_EXPORT_FORMAT_CHECK = `format IN ('${ARTIFACT_EXPORT_FORMAT_VALUES.join(
+  "','",
+)}')`;
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {
@@ -71,7 +130,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         type TEXT NOT NULL CHECK (type IN ('epic', 'task', 'subtask')),
         title TEXT NOT NULL,
         description TEXT NOT NULL,
-        status TEXT NOT NULL CHECK (status IN ('Открыта', 'Требует уточнения', 'Готова к продолжению', 'Декомпозирована', 'Выполнена')),
+        status TEXT NOT NULL CHECK (${TASK_STATUS_CHECK}),
         code TEXT UNIQUE NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -129,8 +188,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     const row = await this.get<{ sql: string }>(
       "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'tasks'",
     );
-    const expectedCheck =
-      "status IN ('Открыта', 'Требует уточнения', 'Готова к продолжению', 'Декомпозирована', 'Выполнена')";
+    const expectedCheck = TASK_STATUS_CHECK;
 
     if (row?.sql?.includes(expectedCheck)) {
       return;
@@ -161,20 +219,15 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         title,
         description,
         CASE status
-          WHEN 'backlog' THEN 'Открыта'
-          WHEN 'in_progress' THEN 'Готова к продолжению'
-          WHEN 'done' THEN 'Выполнена'
-          WHEN 'Open' THEN 'Открыта'
-          WHEN 'Drafted' THEN 'Декомпозирована'
-          WHEN 'RequiresClarification' THEN 'Требует уточнения'
-          WHEN 'Ready' THEN 'Готова к продолжению'
-          WHEN 'Done' THEN 'Выполнена'
-          WHEN 'Открыта' THEN 'Открыта'
-          WHEN 'Декомпозирована' THEN 'Декомпозирована'
-          WHEN 'Требует уточнения' THEN 'Требует уточнения'
-          WHEN 'Готова к продолжению' THEN 'Готова к продолжению'
-          WHEN 'Выполнена' THEN 'Выполнена'
-          ELSE 'Открыта'
+          WHEN 'backlog' THEN '${TaskStatus.Open}'
+          WHEN 'in_progress' THEN '${TaskStatus.ReadyForFollowUp}'
+          WHEN 'done' THEN '${TaskStatus.Done}'
+          WHEN 'Open' THEN '${TaskStatus.Open}'
+          WHEN 'Drafted' THEN '${TaskStatus.Decomposed}'
+          WHEN 'RequiresClarification' THEN '${TaskStatus.NeedsClarification}'
+          WHEN 'Ready' THEN '${TaskStatus.ReadyForFollowUp}'
+          WHEN 'Done' THEN '${TaskStatus.Done}'
+          ELSE '${TaskStatus.Open}'
         END as status,
         code,
         created_at
@@ -192,8 +245,8 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       CREATE TABLE IF NOT EXISTS artifacts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
-        kind TEXT NOT NULL CHECK (kind IN ('text', 'diagram')),
-        category TEXT NOT NULL CHECK (category IN ('use_case_diagram', 'er_diagram', 'entity_diagram', 'user_scenario', 'functional_requirement', 'non_functional_requirement', 'acceptance_criteria')),
+        kind TEXT NOT NULL CHECK (${ARTIFACT_KIND_CHECK}),
+        category TEXT NOT NULL CHECK (${ARTIFACT_CATEGORY_CHECK}),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -203,7 +256,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         artifact_id INTEGER NOT NULL,
         version INTEGER NOT NULL,
-        format TEXT NOT NULL CHECK (format IN ('markdown', 'plantuml', 'text')),
+        format TEXT NOT NULL CHECK (${ARTIFACT_FORMAT_CHECK}),
         content TEXT NOT NULL,
         render_url TEXT,
         notes TEXT,
@@ -217,7 +270,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       CREATE TABLE IF NOT EXISTS artifact_sources (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         artifact_id INTEGER NOT NULL,
-        source_type TEXT NOT NULL CHECK (source_type IN ('task', 'message', 'manual')),
+        source_type TEXT NOT NULL CHECK (${ARTIFACT_SOURCE_CHECK}),
         source_id INTEGER,
         description TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -229,7 +282,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       CREATE TABLE IF NOT EXISTS artifact_exports (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         artifact_version_id INTEGER NOT NULL,
-        format TEXT NOT NULL CHECK (format IN ('markdown', 'docx', 'png', 'plantuml')),
+        format TEXT NOT NULL CHECK (${ARTIFACT_EXPORT_FORMAT_CHECK}),
         content TEXT,
         location TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -316,16 +369,16 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   }
 
   async createTask(task: {
-    type: 'epic' | 'task' | 'subtask';
+    type: TaskType;
     title: string;
     description: string;
-    status: DbTaskStatus;
+    status: TaskStatus;
   }): Promise<{
     id: number;
-    type: 'epic' | 'task' | 'subtask';
+    type: TaskType;
     title: string;
     description: string;
-    status: DbTaskStatus;
+    status: TaskStatus;
     code: string;
     createdAt: string;
     parents: { id: number; code: string; title: string }[];
@@ -343,10 +396,10 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
     const row = await this.get<{
       id: number;
-      type: 'epic' | 'task' | 'subtask';
+      type: TaskType;
       title: string;
       description: string;
-      status: DbTaskStatus;
+      status: TaskStatus;
       code: string;
       created_at: string;
     }>('SELECT * FROM tasks WHERE id = last_insert_rowid()');
@@ -371,10 +424,10 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   async listTasks(): Promise<
     {
       id: number;
-      type: 'epic' | 'task' | 'subtask';
+      type: TaskType;
       title: string;
       description: string;
-      status: DbTaskStatus;
+      status: TaskStatus;
       code: string;
       createdAt: string;
       parents: { id: number; code: string; title: string }[];
@@ -383,10 +436,10 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   > {
     const rows = await this.all<{
       id: number;
-      type: 'epic' | 'task' | 'subtask';
+      type: TaskType;
       title: string;
       description: string;
-      status: DbTaskStatus;
+      status: TaskStatus;
       code: string;
       created_at: string;
     }>('SELECT * FROM tasks ORDER BY created_at DESC');
@@ -399,10 +452,10 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       number,
       {
         id: number;
-        type: 'epic' | 'task' | 'subtask';
+        type: TaskType;
         title: string;
         description: string;
-        status: DbTaskStatus;
+        status: TaskStatus;
         code: string;
         createdAt: string;
       }
@@ -477,17 +530,17 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   async updateTask(
     id: number,
     updates: Partial<{
-      type: 'epic' | 'task' | 'subtask';
+      type: TaskType;
       title: string;
       description: string;
-      status: DbTaskStatus;
+      status: TaskStatus;
     }>,
   ): Promise<{
     id: number;
-    type: 'epic' | 'task' | 'subtask';
+    type: TaskType;
     title: string;
     description: string;
-    status: DbTaskStatus;
+    status: TaskStatus;
     code: string;
     createdAt: string;
     parents: { id: number; code: string; title: string }[];
@@ -522,10 +575,10 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
     const row = await this.get<{
       id: number;
-      type: 'epic' | 'task' | 'subtask';
+      type: TaskType;
       title: string;
       description: string;
-      status: DbTaskStatus;
+      status: TaskStatus;
       code: string;
       created_at: string;
     }>('SELECT * FROM tasks WHERE id = ?', [id]);
@@ -577,10 +630,10 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   async getTaskWithRelations(id: number): Promise<{
     id: number;
-    type: 'epic' | 'task' | 'subtask';
+    type: TaskType;
     title: string;
     description: string;
-    status: DbTaskStatus;
+    status: TaskStatus;
     code: string;
     createdAt: string;
     parents: { id: number; code: string; title: string }[];
@@ -588,10 +641,10 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   }> {
     const task = await this.get<{
       id: number;
-      type: 'epic' | 'task' | 'subtask';
+      type: TaskType;
       title: string;
       description: string;
-      status: DbTaskStatus;
+      status: TaskStatus;
       code: string;
       created_at: string;
     }>('SELECT * FROM tasks WHERE id = ?', [id]);
@@ -718,7 +771,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   async addArtifactExport(input: {
     versionId: number;
-    format: 'markdown' | 'docx' | 'png' | 'plantuml';
+    format: ArtifactExportFormat;
     content?: string;
     location?: string;
   }): Promise<{ id: number }> {
@@ -812,19 +865,19 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   private normalizeCategory(category: ArtifactCategory): ArtifactCategory {
     const map: Record<string, ArtifactCategory> = {
-      use_case_diagram: 'use_case_diagram',
-      USE_CASE_DIAGRAM: 'use_case_diagram',
-      er_diagram: 'er_diagram',
-      entity_diagram: 'er_diagram',
-      ENTITY_DIAGRAM: 'er_diagram',
-      user_scenario: 'user_scenario',
-      USER_SCENARIO: 'user_scenario',
-      functional_requirement: 'functional_requirement',
-      FUNCTIONAL_REQUIREMENTS: 'functional_requirement',
-      non_functional_requirement: 'non_functional_requirement',
-      NON_FUNCTIONAL_REQUIREMENTS: 'non_functional_requirement',
-      acceptance_criteria: 'acceptance_criteria',
-      ACCEPTANCE_CRITERIA: 'acceptance_criteria',
+      use_case_diagram: ArtifactCategory.UseCaseDiagram,
+      USE_CASE_DIAGRAM: ArtifactCategory.UseCaseDiagram,
+      er_diagram: ArtifactCategory.ErDiagram,
+      entity_diagram: ArtifactCategory.ErDiagram,
+      ENTITY_DIAGRAM: ArtifactCategory.ErDiagram,
+      user_scenario: ArtifactCategory.UserScenario,
+      USER_SCENARIO: ArtifactCategory.UserScenario,
+      functional_requirement: ArtifactCategory.FunctionalRequirement,
+      FUNCTIONAL_REQUIREMENTS: ArtifactCategory.FunctionalRequirement,
+      non_functional_requirement: ArtifactCategory.NonFunctionalRequirement,
+      NON_FUNCTIONAL_REQUIREMENTS: ArtifactCategory.NonFunctionalRequirement,
+      acceptance_criteria: ArtifactCategory.AcceptanceCriteria,
+      ACCEPTANCE_CRITERIA: ArtifactCategory.AcceptanceCriteria,
     };
 
     const normalized = map[category];
@@ -836,13 +889,14 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   private toExternalCategory(category: string): ArtifactCategory {
     const map: Record<string, ArtifactCategory> = {
-      use_case_diagram: 'USE_CASE_DIAGRAM',
-      er_diagram: 'ENTITY_DIAGRAM',
-      entity_diagram: 'ENTITY_DIAGRAM',
-      user_scenario: 'USER_SCENARIO',
-      functional_requirement: 'FUNCTIONAL_REQUIREMENTS',
-      non_functional_requirement: 'NON_FUNCTIONAL_REQUIREMENTS',
-      acceptance_criteria: 'ACCEPTANCE_CRITERIA',
+      use_case_diagram: ArtifactCategory.UseCaseDiagramUpper,
+      er_diagram: ArtifactCategory.EntityDiagramUpper,
+      entity_diagram: ArtifactCategory.EntityDiagramUpper,
+      user_scenario: ArtifactCategory.UserScenarioUpper,
+      functional_requirement: ArtifactCategory.FunctionalRequirementsUpper,
+      non_functional_requirement:
+        ArtifactCategory.NonFunctionalRequirementsUpper,
+      acceptance_criteria: ArtifactCategory.AcceptanceCriteriaUpper,
     };
     return map[category] ?? (category as ArtifactCategory);
   }
