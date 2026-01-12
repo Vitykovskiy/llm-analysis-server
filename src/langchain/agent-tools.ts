@@ -1,13 +1,17 @@
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
-import { Task, TasksService } from '../tasks/tasks.service';
-import { VectorStoreService } from './vector-store.service';
-
-export type TaskToolsDeps = {
-  tasksService: TasksService;
-  vectorStoreService: VectorStoreService;
-  formatTask: (task: Task) => string;
-};
+import {
+  AddVectorInput,
+  CreateTaskInput,
+  DeleteTaskInput,
+  DeleteVectorInput,
+  GetVectorInput,
+  ListTasksInput,
+  SearchVectorInput,
+  TaskToolsDeps,
+  UpdateTaskInput,
+  UpdateVectorInput,
+} from './types';
 
 const statusEnum = z.enum([
   'Открыта',
@@ -87,12 +91,13 @@ const deleteTaskSchema = z
   .describe('Параметры удаления задачи') as z.ZodTypeAny;
 
 export const listTasksTool = (deps: TaskToolsDeps): DynamicStructuredTool =>
-  new DynamicStructuredTool<any>({
+  new DynamicStructuredTool({
     name: 'list_tasks',
     description:
       'Список задач с кодами, статусами, типами и связями. Используй, чтобы понять текущие работы.',
     schema: listTasksSchema,
-    func: async ({ status }) => {
+    func: async (input: ListTasksInput) => {
+      const { status } = input;
       const tasks = await deps.tasksService.list();
       const filtered = status
         ? tasks.filter((task) => task.status === status)
@@ -104,15 +109,16 @@ export const listTasksTool = (deps: TaskToolsDeps): DynamicStructuredTool =>
 
       return filtered.map((task) => deps.formatTask(task)).join('\n---\n');
     },
-  }) as unknown as DynamicStructuredTool;
+  });
 
 export const createTaskTool = (deps: TaskToolsDeps): DynamicStructuredTool =>
-  new DynamicStructuredTool<any>({
+  new DynamicStructuredTool({
     name: 'create_task',
     description:
       'Создать задачу или эпик с необязательными связями родитель/потомок. Обязательно укажи название и описание.',
     schema: createTaskSchema,
-    func: async ({ type, title, description, status, parentIds, childIds }) => {
+    func: async (input: CreateTaskInput) => {
+      const { type, title, description, status, parentIds, childIds } = input;
       const created = await deps.tasksService.create({
         type,
         title,
@@ -123,41 +129,44 @@ export const createTaskTool = (deps: TaskToolsDeps): DynamicStructuredTool =>
       });
       return `Создана задача:\n${deps.formatTask(created)}`;
     },
-  }) as unknown as DynamicStructuredTool;
+  });
 
 export const updateTaskTool = (deps: TaskToolsDeps): DynamicStructuredTool =>
-  new DynamicStructuredTool<any>({
+  new DynamicStructuredTool({
     name: 'update_task',
     description:
       'Обновить поля или связи существующей задачи. Передай id и только те поля, что нужно изменить.',
     schema: updateTaskSchema,
-    func: async ({ id, ...payload }) => {
+    func: async (input: UpdateTaskInput) => {
+      const { id, ...payload } = input;
       const updated = await deps.tasksService.update(id, payload);
       return `Обновлена задача ${id}:\n${deps.formatTask(updated)}`;
     },
-  }) as unknown as DynamicStructuredTool;
+  });
 
 export const deleteTaskTool = (deps: TaskToolsDeps): DynamicStructuredTool =>
-  new DynamicStructuredTool<any>({
+  new DynamicStructuredTool({
     name: 'delete_task',
     description:
       'Удалить задачу по id. Используй после подтверждения, что её нужно убрать.',
     schema: deleteTaskSchema,
-    func: async ({ id }) => {
+    func: async (input: DeleteTaskInput) => {
+      const { id } = input;
       await deps.tasksService.delete(id);
       return `Удалена задача ${id}`;
     },
-  }) as unknown as DynamicStructuredTool;
+  });
 
 export const vectorAddDocumentTool = (
   deps: TaskToolsDeps,
 ): DynamicStructuredTool =>
-  new DynamicStructuredTool<any>({
+  new DynamicStructuredTool({
     name: 'vector_add_document',
     description:
       'Добавить документ в векторное хранилище Chroma. Передай текст и при необходимости метаданные/id.',
     schema: addVectorSchema,
-    func: async ({ content, metadata, id }) => {
+    func: async (input: AddVectorInput) => {
+      const { content, metadata, id } = input;
       const result = await deps.vectorStoreService.addDocument({
         content,
         metadata,
@@ -165,15 +174,16 @@ export const vectorAddDocumentTool = (
       });
       return `Добавлен векторный документ с id ${result.id}`;
     },
-  }) as unknown as DynamicStructuredTool;
+  });
 
 export const vectorSearchTool = (deps: TaskToolsDeps): DynamicStructuredTool =>
-  new DynamicStructuredTool<any>({
+  new DynamicStructuredTool({
     name: 'vector_search',
     description:
       'Поиск похожих документов в векторном хранилище. Передай запрос и необязательный лимит (1-10).',
     schema: searchVectorSchema,
-    func: async ({ query, limit }) => {
+    func: async (input: SearchVectorInput) => {
+      const { query, limit } = input;
       const results = await deps.vectorStoreService.similaritySearch(
         query,
         limit ?? 3,
@@ -181,27 +191,29 @@ export const vectorSearchTool = (deps: TaskToolsDeps): DynamicStructuredTool =>
       if (!results.length) return 'Похожие документы не найдены.';
       return JSON.stringify(results, null, 2);
     },
-  }) as unknown as DynamicStructuredTool;
+  });
 
 export const vectorGetTool = (deps: TaskToolsDeps): DynamicStructuredTool =>
-  new DynamicStructuredTool<any>({
+  new DynamicStructuredTool({
     name: 'vector_get',
     description: 'Получить документ из векторного хранилища по id.',
     schema: getVectorSchema,
-    func: async ({ id }) => {
+    func: async (input: GetVectorInput) => {
+      const { id } = input;
       const doc = await deps.vectorStoreService.getDocument(id);
       if (!doc) return `Документ ${id} не найден.`;
       return JSON.stringify(doc, null, 2);
     },
-  }) as unknown as DynamicStructuredTool;
+  });
 
 export const vectorUpdateTool = (deps: TaskToolsDeps): DynamicStructuredTool =>
-  new DynamicStructuredTool<any>({
+  new DynamicStructuredTool({
     name: 'vector_update',
     description:
       'Обновить содержимое и/или метаданные документа в векторном хранилище. Передай id и поля для изменения.',
     schema: updateVectorSchema,
-    func: async ({ id, content, metadata }) => {
+    func: async (input: UpdateVectorInput) => {
+      const { id, content, metadata } = input;
       const result = await deps.vectorStoreService.updateDocument({
         id,
         content,
@@ -209,18 +221,19 @@ export const vectorUpdateTool = (deps: TaskToolsDeps): DynamicStructuredTool =>
       });
       return `Обновлён векторный документ ${result.id}`;
     },
-  }) as unknown as DynamicStructuredTool;
+  });
 
 export const vectorDeleteTool = (deps: TaskToolsDeps): DynamicStructuredTool =>
-  new DynamicStructuredTool<any>({
+  new DynamicStructuredTool({
     name: 'vector_delete',
     description: 'Удалить документ из векторного хранилища по id.',
     schema: deleteVectorSchema,
-    func: async ({ id }) => {
+    func: async (input: DeleteVectorInput) => {
+      const { id } = input;
       await deps.vectorStoreService.deleteDocument(id);
       return `Удалён векторный документ ${id}`;
     },
-  }) as unknown as DynamicStructuredTool;
+  });
 
 export const buildTaskTools = (
   deps: TaskToolsDeps,

@@ -51,7 +51,7 @@ export class LangchainService {
     this.taskTools = buildTaskTools({
       tasksService: this.tasksService,
       vectorStoreService: this.vectorStoreService,
-      formatTask: this.formatTask.bind(this),
+      formatTask: (task) => this.formatTask(task),
     });
   }
 
@@ -134,10 +134,16 @@ export class LangchainService {
         }
 
         try {
-          const result = await tool.invoke(call.args);
+          const rawResult: unknown = await tool.invoke(
+            call.args as Record<string, unknown>,
+          );
+          const content =
+            typeof rawResult === 'string'
+              ? rawResult
+              : JSON.stringify(rawResult);
           messages.push(
             new ToolMessage({
-              content: result,
+              content,
               tool_call_id: toolCallId,
             }),
           );

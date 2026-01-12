@@ -3,6 +3,9 @@ import { randomUUID } from 'crypto';
 import { Document } from '@langchain/core/documents';
 import { Chroma } from '@langchain/community/vectorstores/chroma';
 import { OpenAIEmbeddings } from '@langchain/openai';
+import { ChromaCollection, ChromaCollectionGetResult } from './types';
+
+type ChromaWithCollection = Chroma & { collection?: ChromaCollection };
 
 interface SearchResult {
   content: string;
@@ -113,7 +116,7 @@ export class VectorStoreService {
     }
 
     const store = await this.getStore();
-    const collection = (store as any).collection;
+    const collection = (store as ChromaWithCollection).collection;
     if (!collection?.get) {
       throw new Error('Не удалось получить доступ к коллекции Chroma');
     }
@@ -127,9 +130,9 @@ export class VectorStoreService {
       throw new Error(`Документ ${id} не найден`);
     }
 
-    const currentContent = existing.documents?.[0] as string | undefined;
-    const currentMetadata =
-      (existing.metadatas?.[0] as Record<string, unknown> | undefined) ?? {};
+    const currentContent = existing.documents?.[0];
+    const currentMetadata: Record<string, unknown> =
+      existing.metadatas?.[0] ?? {};
 
     const newContent = input.content?.trim() || currentContent || '';
     if (!newContent) {
@@ -142,6 +145,9 @@ export class VectorStoreService {
 
     if (!collection.update) {
       // Резервный вариант: удалить и добавить заново
+      if (!collection.delete || !collection.add) {
+        throw new Error('Коллекция Chroma недоступна');
+      }
       await collection.delete({ ids: [id] });
       await collection.add({
         ids: [id],
@@ -166,7 +172,7 @@ export class VectorStoreService {
     if (!safeId) throw new Error('Требуется идентификатор документа');
 
     const store = await this.getStore();
-    const collection = (store as any).collection;
+    const collection = (store as ChromaWithCollection).collection;
     if (!collection?.delete) {
       throw new Error('Не удалось получить доступ к коллекции Chroma');
     }
@@ -209,23 +215,22 @@ export class VectorStoreService {
     if (!safeId) throw new Error('Требуется идентификатор документа');
 
     const store = await this.getStore();
-    const collection = (store as any).collection;
+    const collection = (store as ChromaWithCollection).collection;
     if (!collection?.get) {
       throw new Error('Не удалось получить доступ к коллекции Chroma');
     }
 
-    const found = await collection.get({
+    const found = (await collection.get({
       ids: [safeId],
       include: ['documents', 'metadatas', 'distances'],
-    });
+    })) as ChromaCollectionGetResult;
 
     if (!found?.ids?.length) return null;
 
     return {
-      content: (found.documents?.[0] as string | undefined) ?? '',
-      metadata:
-        (found.metadatas?.[0] as Record<string, unknown> | undefined) ?? {},
-      score: (found.distances?.[0] as number | undefined) ?? 0,
+      content: found.documents?.[0] ?? '',
+      metadata: found.metadatas?.[0] ?? {},
+      score: found.distances?.[0] ?? 0,
     };
   }
 
