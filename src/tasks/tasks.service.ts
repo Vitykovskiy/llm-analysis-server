@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseTasksService } from '../database/database-tasks.service';
 
 export enum TaskType {
   Epic = 'epic',
@@ -35,7 +35,7 @@ const TASK_STATUSES: TaskStatus[] = Object.values(TaskStatus);
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(private readonly databaseService: DatabaseTasksService) {}
 
   async list(): Promise<Task[]> {
     return this.databaseService.listTasks();

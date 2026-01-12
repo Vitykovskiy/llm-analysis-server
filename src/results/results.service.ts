@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { DatabaseArtifactsService } from '../database/database-artifacts.service';
 import {
   ArtifactCategory,
   ArtifactFormat,
   ArtifactKind,
   ArtifactSnapshot,
-  DatabaseService,
-} from '../database/database.service';
+} from '../database/types';
 
 export enum ResultFormat {
   Markdown = 'markdown',
@@ -26,7 +26,7 @@ export interface ResultEntry {
 
 @Injectable()
 export class ResultsService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(private readonly databaseService: DatabaseArtifactsService) {}
 
   async list(): Promise<ResultEntry[]> {
     const latest = await this.databaseService.listLatestArtifacts();

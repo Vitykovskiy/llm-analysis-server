@@ -12,7 +12,7 @@ import {
 import { ChatOpenAI } from '@langchain/openai';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { Task, TasksService } from '../tasks/tasks.service';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseMessagesService } from '../database/database-messages.service';
 import { VectorStoreService } from './vector-store.service';
 import { buildTaskTools } from './agent-tools';
 
@@ -28,7 +28,7 @@ export class LangchainService {
 
   constructor(
     private readonly tasksService: TasksService,
-    private readonly databaseService: DatabaseService,
+    private readonly databaseService: DatabaseMessagesService,
     private readonly vectorStoreService: VectorStoreService,
   ) {
     const apiKey = process.env.LLM_API_TOKEN;

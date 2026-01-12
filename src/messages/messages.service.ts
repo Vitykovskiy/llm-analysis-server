@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
+import { DatabaseMessagesService } from '../database/database-messages.service';
 import { LangchainService } from '../langchain/langchain.service';
 import { VectorStoreService } from '../langchain/vector-store.service';
 
@@ -21,7 +21,7 @@ export class MessagesService {
   private readonly logger = new Logger(MessagesService.name);
 
   constructor(
-    private readonly databaseService: DatabaseService,
+    private readonly databaseService: DatabaseMessagesService,
     private readonly langchainService: LangchainService,
     private readonly vectorStoreService: VectorStoreService,
   ) {}
