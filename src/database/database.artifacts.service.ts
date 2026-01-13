@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseCoreService } from './database.core.service';
-import { DatabaseTasksService } from './database-tasks.service';
+import { DatabaseTasksService } from './database.tasks.service';
 import {
   ArtifactCategory,
   ArtifactExportFormat,

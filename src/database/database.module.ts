@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { DatabaseArtifactsService } from './database-artifacts.service';
+import { DatabaseArtifactsService } from './database.artifacts.service';
 import { DatabaseCoreService } from './database.core.service';
-import { DatabaseMessagesService } from './database-messages.service';
-import { DatabaseTasksService } from './database-tasks.service';
+import { DatabaseMessagesService } from './database.messages.service';
+import { DatabaseTasksService } from './database.tasks.service';
 
 @Module({
   providers: [

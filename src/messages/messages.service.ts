@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { DatabaseMessagesService } from '../database/database-messages.service';
+import { DatabaseMessagesService } from '../database/database.messages.service';
 import { LangchainService } from '../langchain/langchain.service';
 import { VectorStoreService } from '../langchain/vector-store.service';
 

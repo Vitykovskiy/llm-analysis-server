@@ -12,9 +12,9 @@ import {
 import { ChatOpenAI } from '@langchain/openai';
 import { DynamicStructuredTool } from '@langchain/core/tools';
 import { Task, TasksService } from '../tasks/tasks.service';
-import { DatabaseMessagesService } from '../database/database-messages.service';
+import { DatabaseMessagesService } from '../database/database.messages.service';
 import { VectorStoreService } from './vector-store.service';
-import { buildTaskTools } from './agent-tools';
+import { buildTaskTools } from './tools';
 
 @Injectable()
 export class LangchainService {

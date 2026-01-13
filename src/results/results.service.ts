@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseArtifactsService } from '../database/database-artifacts.service';
+import { DatabaseArtifactsService } from '../database/database.artifacts.service';
 import {
   ArtifactCategory,
   ArtifactFormat,

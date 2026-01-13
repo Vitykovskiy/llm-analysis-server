@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DatabaseTasksService } from '../database/database-tasks.service';
+import { DatabaseTasksService } from '../database/database.tasks.service';
 
 export enum TaskType {
   Epic = 'epic',
